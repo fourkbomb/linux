@@ -125,6 +125,9 @@ void mmc_release_host(struct mmc_host *host);
 void mmc_get_card(struct mmc_card *card, struct mmc_ctx *ctx);
 void mmc_put_card(struct mmc_card *card, struct mmc_ctx *ctx);
 
+int mmc_start_movi_smart(struct mmc_card *card);
+int mmc_start_movi_operation(struct mmc_card *card);
+
 /**
  *	mmc_claim_host - exclusively claim a host
  *	@host: mmc host to claim
