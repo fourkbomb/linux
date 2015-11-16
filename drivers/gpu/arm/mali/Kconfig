@@ -1,6 +1,6 @@
 config MALI400
 	tristate "Mali-300/400/450 support"
-	depends on ARM
+	depends on ARM && ARMGPU
 	select DMA_SHARED_BUFFER
 	---help---
 	  This enables support for the ARM Mali-300, Mali-400, and Mali-450

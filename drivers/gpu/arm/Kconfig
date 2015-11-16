@@ -1,0 +1,11 @@
+menuconfig ARMGPU
+	tristate "ARM SoC GPUs"
+	depends on DRM && OF
+	help
+	  Support for graphics processing units found in ARM SoCs.
+
+if ARMGPU
+
+source "drivers/gpu/arm/mali/Kconfig"
+
+endif # ARMGPU
