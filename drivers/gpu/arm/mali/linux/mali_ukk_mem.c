@@ -10,6 +10,8 @@
 #include <linux/fs.h>       /* file system operations */
 #include <asm/uaccess.h>    /* user space access */
 
+#include <linux/vmalloc.h>
+
 #include "mali_ukk.h"
 #include "mali_osk.h"
 #include "mali_kernel_common.h"
