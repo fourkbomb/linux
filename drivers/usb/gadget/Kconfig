@@ -212,6 +212,9 @@ config USB_F_TCM
 config USB_F_MTP
 	tristate
 
+config USB_F_PTP
+	tristate
+
 choice
 	tristate "USB Gadget Drivers"
 	default USB_ETH
@@ -487,6 +490,17 @@ config USB_CONFIGFS_F_MTP
 	  a media device but unlike Mass Storage Gadget, MTP operates at
 	  the file level. Thus exposing the relevant content but hiding
 	  the system/restricted files.
+
+config USB_CONFIGFS_F_PTP
+	bool "PTP gadget"
+	depends on USB_CONFIGFS
+	depends on USB_CONFIGFS_F_MTP
+	select USB_F_PTP
+	help
+	  The Picture Transfer Protocol (PTP) function mounts USB gadget
+	  as a camera gadget to allow transfer of images from Host to
+	  Device and vice-versa. This PTP implementation piggybacks on MTP
+	  function.
 
 source "drivers/usb/gadget/legacy/Kconfig"
 

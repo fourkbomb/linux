@@ -125,6 +125,16 @@ static struct usb_interface_descriptor mtp_interface_desc = {
 	.bInterfaceProtocol     = 0,
 };
 
+static struct usb_interface_descriptor ptp_interface_desc = {
+	.bLength                = USB_DT_INTERFACE_SIZE,
+	.bDescriptorType        = USB_DT_INTERFACE,
+	.bInterfaceNumber       = 0,
+	.bNumEndpoints          = 3,
+	.bInterfaceClass        = USB_CLASS_STILL_IMAGE,
+	.bInterfaceSubClass     = 1,
+	.bInterfaceProtocol     = 1,
+};
+
 static struct usb_endpoint_descriptor mtp_ss_in_desc = {
 	.bLength                = USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType        = USB_DT_ENDPOINT,
@@ -216,6 +226,33 @@ static struct usb_descriptor_header *hs_mtp_descs[] = {
 
 static struct usb_descriptor_header *ss_mtp_descs[] = {
 	(struct usb_descriptor_header *) &mtp_interface_desc,
+	(struct usb_descriptor_header *) &mtp_ss_in_desc,
+	(struct usb_descriptor_header *) &mtp_ss_in_comp_desc,
+	(struct usb_descriptor_header *) &mtp_ss_out_desc,
+	(struct usb_descriptor_header *) &mtp_ss_out_comp_desc,
+	(struct usb_descriptor_header *) &mtp_intr_desc,
+	(struct usb_descriptor_header *) &mtp_intr_ss_comp_desc,
+	NULL,
+};
+
+static struct usb_descriptor_header *fs_ptp_descs[] = {
+	(struct usb_descriptor_header *) &ptp_interface_desc,
+	(struct usb_descriptor_header *) &mtp_fullspeed_in_desc,
+	(struct usb_descriptor_header *) &mtp_fullspeed_out_desc,
+	(struct usb_descriptor_header *) &mtp_intr_desc,
+	NULL,
+};
+
+static struct usb_descriptor_header *hs_ptp_descs[] = {
+	(struct usb_descriptor_header *) &ptp_interface_desc,
+	(struct usb_descriptor_header *) &mtp_highspeed_in_desc,
+	(struct usb_descriptor_header *) &mtp_highspeed_out_desc,
+	(struct usb_descriptor_header *) &mtp_intr_desc,
+	NULL,
+};
+
+static struct usb_descriptor_header *ss_ptp_descs[] = {
+	(struct usb_descriptor_header *) &ptp_interface_desc,
 	(struct usb_descriptor_header *) &mtp_ss_in_desc,
 	(struct usb_descriptor_header *) &mtp_ss_in_comp_desc,
 	(struct usb_descriptor_header *) &mtp_ss_out_desc,
@@ -1383,7 +1420,7 @@ static void mtp_free_inst(struct usb_function_instance *fi)
 	kfree(fi_mtp);
 }
 
-static struct usb_function_instance *mtp_alloc_inst(void)
+struct usb_function_instance *alloc_inst_mtp_ptp(bool mtp_config)
 {
 	struct mtp_instance *fi_mtp;
 	int ret = 0;
@@ -1401,12 +1438,15 @@ static struct usb_function_instance *mtp_alloc_inst(void)
 	descs[0] = &fi_mtp->mtp_os_desc;
 	names[0] = "MTP";
 
-	ret = mtp_setup(fi_mtp);
-	if (ret) {
-		kfree(fi_mtp);
-		pr_err("Error setting MTP\n");
-		return ERR_PTR(ret);
-	}
+	if (mtp_config) {
+		ret = mtp_setup(fi_mtp);
+		if (ret) {
+			kfree(fi_mtp);
+			pr_err("Error setting MTP\n");
+			return ERR_PTR(ret);
+		}
+	} else
+		fi_mtp->dev = _mtp_dev;
 
 	config_group_init_type_name(&fi_mtp->func_inst.group,
 					"", &mtp_func_type);
@@ -1414,6 +1454,12 @@ static struct usb_function_instance *mtp_alloc_inst(void)
 					descs, names, THIS_MODULE);
 
 	return  &fi_mtp->func_inst;
+}
+EXPORT_SYMBOL_GPL(alloc_inst_mtp_ptp);
+
+static struct usb_function_instance *mtp_alloc_inst(void)
+{
+	return alloc_inst_mtp_ptp(true);
 }
 
 static int mtp_ctrlreq_configfs(struct usb_function *f,
@@ -1427,16 +1473,37 @@ static void mtp_free(struct usb_function *f)
 	/*NO-OP: no function specific resource allocation in mtp_alloc*/
 }
 
-static struct usb_function *mtp_alloc(struct usb_function_instance *fi)
+struct usb_function *function_alloc_mtp_ptp(struct usb_function_instance *fi,
+					bool mtp_config)
 {
 	struct mtp_instance *fi_mtp = to_fi_mtp(fi);
-	struct mtp_dev *dev = fi_mtp->dev;
+	struct mtp_dev *dev;
 
+	/*
+	 * PTP piggybacks on MTP function so make sure we have
+	 * created MTP function before we associate this PTP
+	 * function with a gadget configuration.
+	 */
+	if (fi_mtp->dev == NULL) {
+		pr_err("Error: Create MTP func before linking PTP func\n");
+		pr_err("\t1: Delete existing PTP function if any\n");
+		pr_err("\t2: Create MTP function\n");
+		pr_err("\t3: Create & symlink PTP func with a gadget config\n");
+		return ERR_PTR(-EINVAL); /* Invalid Configuration */
+	}
+
+	dev = fi_mtp->dev;
 	dev->function.name = DRIVER_NAME;
 	dev->function.strings = mtp_strings;
-	dev->function.fs_descriptors = fs_mtp_descs;
-	dev->function.hs_descriptors = hs_mtp_descs;
-	dev->function.ss_descriptors = ss_mtp_descs;
+	if (mtp_config) {
+		dev->function.fs_descriptors = fs_mtp_descs;
+		dev->function.hs_descriptors = hs_mtp_descs;
+		dev->function.ss_descriptors = ss_mtp_descs;
+	} else {
+		dev->function.fs_descriptors = fs_ptp_descs;
+		dev->function.hs_descriptors = hs_ptp_descs;
+		dev->function.ss_descriptors = ss_ptp_descs;
+	}
 	dev->function.bind = mtp_function_bind;
 	dev->function.unbind = mtp_function_unbind;
 	dev->function.set_alt = mtp_function_set_alt;
@@ -1445,6 +1512,12 @@ static struct usb_function *mtp_alloc(struct usb_function_instance *fi)
 	dev->function.free_func = mtp_free;
 
 	return &dev->function;
+}
+EXPORT_SYMBOL_GPL(function_alloc_mtp_ptp);
+
+static struct usb_function *mtp_alloc(struct usb_function_instance *fi)
+{
+	return function_alloc_mtp_ptp(fi, true);
 }
 
 DECLARE_USB_FUNCTION_INIT(mtp, mtp_alloc_inst, mtp_alloc);

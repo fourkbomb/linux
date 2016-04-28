@@ -1,0 +1,7 @@
+What:		/config/usb-gadget/gadget/functions/ptp.name
+Date:		Apr 2016
+KernelVersion:	4.6
+Description:	The purpose of this directory is to create and remove it.
+
+		A corresponding USB function instance is created/removed.
+		There are no attributes here.

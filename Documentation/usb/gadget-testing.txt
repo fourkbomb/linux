@@ -21,6 +21,7 @@ provided by gadgets.
 18. UVC function
 19. PRINTER function
 20. MTP function
+21. PTP function
 
 
 1. ACM function
@@ -794,3 +795,27 @@ On the device: enable the gadget, and start the mtp userspace daemon.
 On the host: if configured correctly the media storage device should auto-mount
 itself, or use Linux mtp-tools package to browse/transfer the media content
 instead.
+
+21. PTP function
+===============
+
+The function is provided by usb_f_ptp.ko module.
+
+Function-specific configfs interface
+------------------------------------
+
+The function name to use when creating the function directory is "ptp".
+The function directory is intentionally empty and has no attributes as such.
+
+This ptp function piggybacks on mtp function so make sure we have created mtp
+function before we create ptp function directory. After creating the ptp
+function directory, link ptp function with the gadget configuration by creating
+symbolic link, enable the gadget by writing a suitable string to
+usb_gadget/<gadget>/UDC and start the ptp userspace daemon.
+
+Testing the ptp function
+------------------------
+
+On the device: enable the gadget, and start the ptp userspace daemon.
+On the host: if configured correctly the photo storage device should auto-mount
+itself.
