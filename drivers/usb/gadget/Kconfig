@@ -209,6 +209,9 @@ config USB_F_PRINTER
 config USB_F_TCM
 	tristate
 
+config USB_F_MTP
+	tristate
+
 choice
 	tristate "USB Gadget Drivers"
 	default USB_ETH
@@ -474,6 +477,16 @@ config USB_CONFIGFS_F_TCM
 	  interface 0 (primary) and UAS is on alternative interface 1.
 	  Both protocols can work on USB2.0 and USB3.0.
 	  UAS utilizes the USB 3.0 feature called streams support.
+
+config USB_CONFIGFS_F_MTP
+	bool "MTP gadget"
+	depends on USB_CONFIGFS
+	select USB_F_MTP
+	help
+	  The Media Transfer Protocol (MTP) function mounts USB gadget as
+	  a media device but unlike Mass Storage Gadget, MTP operates at
+	  the file level. Thus exposing the relevant content but hiding
+	  the system/restricted files.
 
 source "drivers/usb/gadget/legacy/Kconfig"
 
