@@ -22,6 +22,7 @@
 #include <linux/gpio/consumer.h>
 #include <linux/regulator/consumer.h>
 
+#include <linux/backlight.h>
 #include <video/mipi_display.h>
 #include <video/of_videomode.h>
 #include <video/videomode.h>
@@ -91,6 +92,8 @@ struct s6e8aa0_variant {
 	const s6e8aa0_gamma_table *gamma_tables;
 };
 
+#define S6E8AA0_STATE_BIT_ENABLED	0
+
 struct s6e8aa0 {
 	struct device *dev;
 	struct drm_panel panel;
@@ -106,6 +109,7 @@ struct s6e8aa0 {
 	u32 width_mm;
 	u32 height_mm;
 
+	unsigned long state;
 	u8 version;
 	u8 id;
 	const struct s6e8aa0_variant *variant;
@@ -887,6 +891,7 @@ static int s6e8aa0_unprepare(struct drm_panel *panel)
 {
 	struct s6e8aa0 *ctx = panel_to_s6e8aa0(panel);
 
+	clear_bit(S6E8AA0_STATE_BIT_ENABLED, &ctx->state);
 	s6e8aa0_dcs_write_seq_static(ctx, MIPI_DCS_ENTER_SLEEP_MODE);
 	s6e8aa0_dcs_write_seq_static(ctx, MIPI_DCS_SET_DISPLAY_OFF);
 	msleep(40);
@@ -910,6 +915,8 @@ static int s6e8aa0_prepare(struct drm_panel *panel)
 
 	if (ret < 0)
 		s6e8aa0_unprepare(panel);
+	else
+		set_bit(S6E8AA0_STATE_BIT_ENABLED, &ctx->state);
 
 	return ret;
 }
@@ -950,6 +957,47 @@ static const struct drm_panel_funcs s6e8aa0_drm_funcs = {
 	.enable = s6e8aa0_enable,
 	.get_modes = s6e8aa0_get_modes,
 };
+
+static int s6e8aa0_get_brightness(struct backlight_device *bd)
+{
+	return bd->props.brightness;
+}
+
+static int s6e8aa0_set_brightness(struct backlight_device *bd)
+{
+	struct s6e8aa0 *ctx = bl_get_data(bd);
+
+	bd->props.power = FB_BLANK_UNBLANK;
+	if (ctx->brightness != bd->props.brightness) {
+		ctx->brightness = bd->props.brightness;
+		if (test_bit(S6E8AA0_STATE_BIT_ENABLED, &ctx->state))
+			s6e8aa0_brightness_set(ctx);
+	}
+
+	return s6e8aa0_clear_error(ctx);
+}
+
+static const struct backlight_ops s6e8aa0_backlight_ops = {
+	.get_brightness = s6e8aa0_get_brightness,
+	.update_status = s6e8aa0_set_brightness,
+};
+
+static void s6e8aa0_backlight_register(struct s6e8aa0 *ctx)
+{
+	struct backlight_properties props = {
+		.type = BACKLIGHT_RAW,
+		.brightness = ctx->brightness,
+		.max_brightness = GAMMA_LEVEL_NUM - 1
+	};
+	struct device *dev = ctx->dev;
+	struct backlight_device *bd;
+
+	bd = devm_backlight_device_register(dev, "panel", dev, ctx,
+					    &s6e8aa0_backlight_ops, &props);
+	if (IS_ERR(bd))
+		dev_err(dev, "error registering backlight device (%ld)\n",
+			PTR_ERR(bd));
+}
 
 static int s6e8aa0_parse_dt(struct s6e8aa0 *ctx)
 {
@@ -1027,6 +1075,8 @@ static int s6e8aa0_probe(struct mipi_dsi_device *dsi)
 	ret = mipi_dsi_attach(dsi);
 	if (ret < 0)
 		drm_panel_remove(&ctx->panel);
+
+	s6e8aa0_backlight_register(ctx);
 
 	return ret;
 }
