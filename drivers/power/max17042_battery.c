@@ -94,7 +94,6 @@ static enum power_supply_property max17042_battery_props[] = {
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CURRENT_AVG,
-	POWER_SUPPLY_PROP_TECHNOLOGY,
 };
 
 static int max17042_get_temperature(struct max17042_chip *chip, int *temp)
@@ -247,7 +246,7 @@ static int max17042_get_property(struct power_supply *psy,
 		val->intval = data * 625 / 8;
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
-		ret = regmap_read(map, MAX17042_VFSOC, &data);
+		ret = regmap_read(map, MAX17042_RepSOC, &data);
 		if (ret < 0)
 			return ret;
 
@@ -333,9 +332,6 @@ static int max17042_get_property(struct power_supply *psy,
 			return -EINVAL;
 		}
 		break;
-	case POWER_SUPPLY_PROP_TECHNOLOGY:
-		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
-		break;
 	default:
 		return -EINVAL;
 	}
@@ -396,7 +392,6 @@ static int max17042_property_is_writeable(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_TEMP_ALERT_MIN:
 	case POWER_SUPPLY_PROP_TEMP_ALERT_MAX:
-	case POWER_SUPPLY_PROP_TECHNOLOGY:
 		ret = 1;
 		break;
 	default:
