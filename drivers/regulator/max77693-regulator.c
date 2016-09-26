@@ -54,14 +54,19 @@ struct chg_reg_data {
 	unsigned int linear_mask;
 	unsigned int uA_step;
 	unsigned int min_sel;
+
+	bool set_fast;
+	unsigned int fast_reg;
+	unsigned int fast_mask;
 };
 
 /*
  * MAX77693 CHARGER regulator - Min : 20mA, Max : 2580mA, step : 20mA
  * 0x00, 0x01, 0x2, 0x03	= 60 mA
  * 0x04 ~ 0x7E			= (60 + (X - 3) * 20) mA
- * Actually for MAX77693 the driver manipulates the maximum input current,
- * not the fast charge current (output). This should be fixed.
+ * Actually for MAX77693 the driver manipulates the maximum input current
+ * and the fast charge current (output) because the fast charge current
+ * is not set.
  *
  * On MAX77843 the calculation formula is the same (except values).
  * Fortunately it properly manipulates the fast charge current.
@@ -100,6 +105,8 @@ static int max77693_chg_set_current_limit(struct regulator_dev *rdev,
 	const struct chg_reg_data *reg_data = rdev_get_drvdata(rdev);
 	unsigned int chg_min_uA = rdev->constraints->min_uA;
 	int sel = 0;
+	unsigned int data;
+	int ret;
 
 	while (chg_min_uA + reg_data->uA_step * sel < min_uA)
 		sel++;
@@ -110,7 +117,35 @@ static int max77693_chg_set_current_limit(struct regulator_dev *rdev,
 	/* the first four codes for charger current are all 60mA */
 	sel += reg_data->min_sel;
 
-	return regmap_write(rdev->regmap, reg_data->linear_reg, sel);
+	ret = regmap_write(rdev->regmap, reg_data->linear_reg, sel);
+	if (ret < 0)
+		return ret;
+
+	if (reg_data->set_fast) {
+		/* disable fast charge if minimum value */
+		if (sel == reg_data->min_sel)
+			data = 0;
+		else {
+			/*
+			 * set the fast charge current to the closest value
+			 * below the input current
+			 */
+			ret = regmap_read(rdev->regmap, reg_data->fast_reg,
+					  &data);
+			if (ret < 0)
+				return ret;
+
+			sel *= reg_data->uA_step / 1000; /* convert to mA */
+			data &= ~reg_data->fast_mask;
+			data |= sel * 10 / 333; /* 0.1A/3 steps */
+		}
+
+		ret = regmap_write(rdev->regmap, reg_data->fast_reg, data);
+		if (ret < 0)
+			return ret;
+	}
+
+	return 0;
 }
 /* end of CHARGER regulator ops */
 
@@ -197,6 +232,9 @@ static const struct chg_reg_data max77693_chg_reg_data = {
 	.linear_mask	= CHG_CNFG_09_CHGIN_ILIM_MASK,
 	.uA_step	= 20000,
 	.min_sel	= 3,
+	.set_fast	= true,
+	.fast_reg	= MAX77693_CHG_REG_CHG_CNFG_02,
+	.fast_mask	= CHG_CNFG_02_CC_MASK,
 };
 
 #define	max77843_regulator_desc_esafeout(num)	{			\
@@ -237,6 +275,7 @@ static const struct chg_reg_data max77843_chg_reg_data = {
 	.linear_mask	= MAX77843_CHG_FAST_CHG_CURRENT_MASK,
 	.uA_step	= MAX77843_CHG_FAST_CHG_CURRENT_STEP,
 	.min_sel	= 2,
+	.set_fast	= false,
 };
 
 static int max77693_pmic_probe(struct platform_device *pdev)
