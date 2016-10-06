@@ -49,13 +49,9 @@ _mali_osk_errcode_t _mali_osk_wq_init(void)
 	MALI_DEBUG_ASSERT(NULL == mali_wq_normal);
 	MALI_DEBUG_ASSERT(NULL == mali_wq_high);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
 	mali_wq_normal = alloc_workqueue("mali", WQ_UNBOUND, 0);
 	mali_wq_high = alloc_workqueue("mali_high_pri", WQ_HIGHPRI | WQ_UNBOUND, 0);
-#else
-	mali_wq_normal = create_workqueue("mali");
-	mali_wq_high = create_workqueue("mali_high_pri");
-#endif
+
 	if (NULL == mali_wq_normal || NULL == mali_wq_high) {
 		MALI_PRINT_ERROR(("Unable to create Mali workqueues\n"));
 
@@ -169,20 +165,6 @@ static void _mali_osk_wq_work_func(struct work_struct *work)
 	mali_osk_wq_work_object_t *work_object;
 
 	work_object = _MALI_OSK_CONTAINER_OF(work, mali_osk_wq_work_object_t, work_handle);
-
-#if MALI_LICENSE_IS_GPL
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,36)
-	/* We want highest Dynamic priority of the thread so that the Jobs depending
-	** on this thread could be scheduled in time. Without this, this thread might
-	** sometimes need to wait for some threads in user mode to finish its round-robin
-	** time, causing *bubble* in the Mali pipeline. Thanks to the new implementation
-	** of high-priority workqueue in new kernel, this only happens in older kernel.
-	*/
-	if (MALI_TRUE == work_object->high_pri) {
-		set_user_nice(current, -19);
-	}
-#endif
-#endif /* MALI_LICENSE_IS_GPL */
 
 	work_object->handler(work_object->data);
 }

@@ -21,11 +21,7 @@
 
 #include <linux/seq_file.h>
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
-#include <linux/sync.h>
-#else
 #include <sync.h>
-#endif
 
 
 #include "mali_osk.h"

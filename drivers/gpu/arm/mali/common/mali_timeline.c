@@ -23,38 +23,6 @@ static mali_scheduler_mask mali_timeline_system_release_waiter(struct mali_timel
 
 #if defined(CONFIG_SYNC)
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0)
-#include <linux/list.h>
-#include <linux/workqueue.h>
-#include <linux/spinlock.h>
-
-struct mali_deferred_fence_put_entry {
-	struct hlist_node list;
-	struct sync_fence *fence;
-};
-
-static HLIST_HEAD(mali_timeline_sync_fence_to_free_list);
-static DEFINE_SPINLOCK(mali_timeline_sync_fence_to_free_lock);
-
-static void put_sync_fences(struct work_struct *ignore)
-{
-	struct hlist_head list;
-	struct hlist_node *tmp, *pos;
-	unsigned long flags;
-	struct mali_deferred_fence_put_entry *o;
-
-	spin_lock_irqsave(&mali_timeline_sync_fence_to_free_lock, flags);
-	hlist_move_list(&mali_timeline_sync_fence_to_free_list, &list);
-	spin_unlock_irqrestore(&mali_timeline_sync_fence_to_free_lock, flags);
-
-	hlist_for_each_entry_safe(o, pos, tmp, &mali_timeline_sync_fence_to_free_list, list) {
-		sync_fence_put(o->fence);
-		kfree(o);
-	}
-}
-
-static DECLARE_DELAYED_WORK(delayed_sync_fence_put, put_sync_fences);
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0) */
 
 /* Callback that is called when a sync fence a tracker is waiting on is signaled. */
 static void mali_timeline_sync_fence_callback(struct sync_fence *sync_fence, struct sync_fence_waiter *sync_fence_waiter)
@@ -98,30 +66,7 @@ static void mali_timeline_sync_fence_callback(struct sync_fence *sync_fence, str
 
 	mali_spinlock_reentrant_signal(system->spinlock, tid);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0)
-	{
-		struct mali_deferred_fence_put_entry *obj;
-
-		obj = kzalloc(sizeof(struct mali_deferred_fence_put_entry), GFP_ATOMIC);
-		if (obj) {
-			unsigned long flags;
-			mali_bool schedule = MALI_FALSE;
-
-			obj->fence = sync_fence;
-
-			spin_lock_irqsave(&mali_timeline_sync_fence_to_free_lock, flags);
-			if (hlist_empty(&mali_timeline_sync_fence_to_free_list))
-				schedule = MALI_TRUE;
-			hlist_add_head(&obj->list, &mali_timeline_sync_fence_to_free_list);
-			spin_unlock_irqrestore(&mali_timeline_sync_fence_to_free_lock, flags);
-
-			if (schedule)
-				schedule_delayed_work(&delayed_sync_fence_put, 0);
-		}
-	}
-#else
 	sync_fence_put(sync_fence);
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0) */
 
 	if (!is_aborting) {
 		mali_scheduler_schedule_from_mask(schedule_mask, MALI_TRUE);
