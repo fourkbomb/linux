@@ -60,6 +60,16 @@ config MALI_DMA_BUF_MAP_ON_ATTACH
 
 	  Mapping for each access can cause lower performance.
 
+config MALI_DT
+	bool "Using device tree to initialize module"
+	depends on MALI400 && CONFIG_OF
+	default n
+	---help---
+	  This enable the Mali driver to choose the device tree path to get platform resoures
+	  and disable the old config method. Mali driver could run on the platform which the
+	  device tree is enabled in kernel and corresponding hardware description is implemented
+	  properly in device DTS file.
+
 config MALI_SHARED_INTERRUPTS
 	bool "Support for shared interrupts"
 	depends on MALI400

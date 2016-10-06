@@ -939,6 +939,11 @@ _mali_osk_errcode_t mali_initialize_subsystems(void)
 	_mali_osk_errcode_t err;
 	struct mali_pmu_core *pmu;
 
+#ifdef CONFIG_MALI_DT
+	err = _mali_osk_resource_initialize();
+	if (_MALI_OSK_ERR_OK != err) goto dt_failure;
+#endif
+
 	mali_pp_job_initialize();
 
 	err = mali_session_initialize();
@@ -1104,6 +1109,7 @@ memory_init_failed:
 	mali_session_terminate();
 session_init_failed:
 	mali_pp_job_terminate();
+dt_failure:
 	return err;
 }
 

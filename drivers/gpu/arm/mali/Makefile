@@ -15,6 +15,7 @@ USING_POWER_PERFORMANCE_POLICY ?= 0
 MALI_HEATMAPS_ENABLED ?= 0
 MALI_DMA_BUF_MAP_ON_ATTACH ?= 1
 MALI_PMU_PARALLEL_POWER_UP ?= 0
+USING_DT ?= 0
 
 # The Makefile sets up "arch" based on the CONFIG, creates the version info
 # string and the __malidrv_build_info.c file, and then call the Linux build
@@ -140,6 +141,13 @@ endif
 ifeq ($(MALI_PMU_PARALLEL_POWER_UP),1)
 export CONFIG_MALI_PMU_PARALLEL_POWER_UP=y
 export EXTRA_DEFINES += -DCONFIG_MALI_PMU_PARALLEL_POWER_UP
+endif
+
+ifdef CONFIG_OF
+ifeq ($(USING_DT),1)
+export CONFIG_MALI_DT=y
+export EXTRA_DEFINES += -DCONFIG_MALI_DT
+endif
 endif
 
 ifneq ($(BUILD),release)
