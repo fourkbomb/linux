@@ -55,8 +55,6 @@ extern "C" {
 #define MALI_IOC_MEM_ATTACH_DMA_BUF         _IOWR(MALI_IOC_MEMORY_BASE, _MALI_UK_ATTACH_DMA_BUF, _mali_uk_attach_dma_buf_s *)
 #define MALI_IOC_MEM_RELEASE_DMA_BUF        _IOW(MALI_IOC_MEMORY_BASE, _MALI_UK_RELEASE_DMA_BUF, _mali_uk_release_dma_buf_s *)
 #define MALI_IOC_MEM_DMA_BUF_GET_SIZE       _IOR(MALI_IOC_MEMORY_BASE, _MALI_UK_DMA_BUF_GET_SIZE, _mali_uk_dma_buf_get_size_s *)
-#define MALI_IOC_MEM_ATTACH_UMP             _IOWR(MALI_IOC_MEMORY_BASE, _MALI_UK_ATTACH_UMP_MEM, _mali_uk_attach_ump_mem_s *)
-#define MALI_IOC_MEM_RELEASE_UMP            _IOW(MALI_IOC_MEMORY_BASE, _MALI_UK_RELEASE_UMP_MEM, _mali_uk_release_ump_mem_s *)
 #define MALI_IOC_MEM_QUERY_MMU_PAGE_TABLE_DUMP_SIZE _IOR (MALI_IOC_MEMORY_BASE, _MALI_UK_QUERY_MMU_PAGE_TABLE_DUMP_SIZE, _mali_uk_query_mmu_page_table_dump_size_s *)
 #define MALI_IOC_MEM_DUMP_MMU_PAGE_TABLE    _IOWR(MALI_IOC_MEMORY_BASE, _MALI_UK_DUMP_MMU_PAGE_TABLE, _mali_uk_dump_mmu_page_table_s *)
 #define MALI_IOC_MEM_WRITE_SAFE             _IOWR(MALI_IOC_MEMORY_BASE, _MALI_UK_MEM_WRITE_SAFE, _mali_uk_mem_write_safe_s *)

@@ -8,7 +8,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-USE_UMPV2=0
 USING_PROFILING ?= 1
 USING_INTERNAL_PROFILING ?= 0
 USING_POWER_PERFORMANCE_POLICY ?= 0
@@ -62,19 +61,6 @@ endif
 # validate lookup result
 ifeq ($(KDIR),)
 $(error No KDIR found for platform $(TARGET_PLATFORM))
-endif
-
-
-ifeq ($(USING_UMP),1)
-export CONFIG_MALI400_UMP=y
-export EXTRA_DEFINES += -DCONFIG_MALI400_UMP=1
-ifeq ($(USE_UMPV2),1)
-UMP_SYMVERS_FILE ?= ../umpv2/Module.symvers
-else
-UMP_SYMVERS_FILE ?= ../ump/Module.symvers
-endif
-KBUILD_EXTRA_SYMBOLS = $(realpath $(UMP_SYMVERS_FILE))
-$(warning $(KBUILD_EXTRA_SYMBOLS))
 endif
 
 # Define host system directory
@@ -165,7 +151,7 @@ ifeq ($(MALI_SKIP_JOBS),1)
 EXTRA_DEFINES += -DPROFILING_SKIP_PP_JOBS=1 -DPROFILING_SKIP_GP_JOBS=1
 endif
 
-all: $(UMP_SYMVERS_FILE)
+all:
 	$(MAKE) ARCH=$(ARCH) -C $(KDIR) M=$(CURDIR) modules
 	@rm $(FILES_PREFIX)__malidrv_build_info.c $(FILES_PREFIX)__malidrv_build_info.o
 
