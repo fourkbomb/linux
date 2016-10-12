@@ -17,7 +17,7 @@
 #include <linux/platform_device.h>
 #include <linux/version.h>
 #include <linux/pm.h>
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM
 #include <linux/pm_runtime.h>
 #endif
 #include <asm/io.h>
@@ -142,7 +142,7 @@ int mali_platform_device_register(void)
 	/* Register the platform device */
 	err = platform_device_register(&mali_gpu_device);
 	if (0 == err) {
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM
 		pm_runtime_set_autosuspend_delay(&(mali_gpu_device.dev), 1000);
 		pm_runtime_use_autosuspend(&(mali_gpu_device.dev));
 		pm_runtime_enable(&(mali_gpu_device.dev));
@@ -228,7 +228,7 @@ int mali_platform_device_init(struct platform_device *device)
 	err = platform_device_add_data(device, &mali_gpu_data, sizeof(mali_gpu_data));
 
 	if (0 == err) {
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM
 		pm_runtime_set_autosuspend_delay(&(device->dev), 1000);
 		pm_runtime_use_autosuspend(&(device->dev));
 		pm_runtime_enable(&(device->dev));
