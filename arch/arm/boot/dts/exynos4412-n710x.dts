@@ -37,6 +37,105 @@
 	status = "okay";
 };
 
+&dsi_0 {
+	vddcore-supply = <&ldo8_reg>;
+	vddio-supply = <&ldo10_reg>;
+	samsung,burst-clock-frequency = <500000000>;
+	samsung,esc-clock-frequency = <20000000>;
+	samsung,pll-clock-frequency = <24000000>;
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@1 {
+			reg = <1>;
+
+			dsi_out: endpoint@0 {
+				samsung,burst-clock-frequency = <500000000>;
+				samsung,esc-clock-frequency = <20000000>;
+				status = "disabled";
+			};
+
+		};
+
+	};
+
+	// bootloader will choose the correct panel to use
+	s6evr02: panel-s6evr02@0 {
+		compatible = "samsung,s6evr02";
+		reg = <0>;
+		vdd3-supply = <&ldo13_reg>;
+		vci-supply = <&ldo25_reg>;
+		reset-gpios = <&gpf2 1 GPIO_ACTIVE_HIGH>;
+		power-on-delay = <50>;
+		reset-delay = <100>;
+		init-delay = <100>;
+		panel-width-mm = <69>;
+		panel-height-mm = <123>;
+		// HIGH means s6evr02
+		present-gpios = <&gpf1 0 GPIO_ACTIVE_HIGH>;
+		status = "disabled";
+
+		display-timings {
+			timing0_s6evr02: timing-0 {
+				clock-frequency = <62614944>;
+				hactive = <720>;
+				vactive = <1280>;
+				hfront-porch = <70>;
+				hback-porch = <40>;
+				hsync-len = <3>;
+				vfront-porch = <13>;
+				vback-porch = <1>;
+				vsync-len = <2>;
+			};
+		};
+
+		port {
+			dsi_in_s6evr02: endpoint {
+				status = "disabled";
+			};
+		};
+	};
+
+	ea8061: panel-ea8061@0 {
+		compatible = "magnachip,ea8061";
+		reg = <0>;
+		vdd3-supply = <&ldo13_reg>;
+		vci-supply = <&ldo25_reg>;
+		reset-gpios = <&gpf2 1 GPIO_ACTIVE_HIGH>;
+		power-on-delay = <50>;
+		reset-delay = <100>;
+		init-delay = <100>;
+		panel-width-mm = <69>;
+		panel-height-mm = <123>;
+		// LOW means ea8061
+		present-gpios = <&gpf1 0 GPIO_ACTIVE_LOW>;
+		status = "disabled";
+
+		display-timings {
+			timing0_ea8061: timing-0 {
+				clock-frequency = <67425696>;
+				hactive = <720>;
+				vactive = <1280>;
+				hfront-porch = <52>;
+				hback-porch = <121>;
+				hsync-len = <4>;
+				vfront-porch = <13>;
+				vback-porch = <1>;
+				vsync-len = <2>;
+			};
+		};
+
+		port {
+			dsi_in_ea8061: endpoint {
+				status = "disabled";
+			};
+		};
+	};
+};
+
 &i2c_3 {
 	samsung,i2c-sda-delay = <100>;
 	samsung,i2c-slave-addr = <0x10>;
@@ -54,6 +153,7 @@
 		y-size = <1280>;
 		avdd-supply = <&ldo23_reg>;
 		vdd-supply = <&ldo24_reg>;
+
 	};
 };
 

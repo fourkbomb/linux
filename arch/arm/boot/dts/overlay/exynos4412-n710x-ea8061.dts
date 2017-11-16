@@ -1,0 +1,25 @@
+/*
+ * Device tree overlay for Magnachip EA8061 display on T0 boards
+ *
+ * Copyright (c) 2017 Simon Shields <simon@lineageos.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation
+ */
+/dts-v1/;
+/plugin/;
+
+&dsi_out {
+	remote-endpoint = <&dsi_in_ea8061>;
+	status = "okay";
+};
+
+&dsi_in_ea8061 {
+	remote-endpoint = <&dsi_out>;
+	status = "okay";
+};
+
+&ea8061 {
+	status = "okay";
+};
