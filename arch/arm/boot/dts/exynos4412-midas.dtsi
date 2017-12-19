@@ -23,6 +23,7 @@
 	aliases {
 		i2c11 = &i2c_max77693;
 		i2c12 = &i2c_max77693_fuel;
+		i2c13 = &i2c_an30259a;
 	};
 
 	chosen {
@@ -221,6 +222,36 @@
 			vcc-supply = <&ldo5_reg>;
 			interrupt-parent = <&gpj0>;
 			interrupts = <3 IRQ_TYPE_EDGE_FALLING>;
+		};
+	};
+
+	i2c_an30259a: i2c-gpio-5 {
+		compatible = "i2c-gpio";
+		gpios = <&gpf2 7 GPIO_ACTIVE_HIGH>, <&gpf2 6 GPIO_ACTIVE_HIGH>;
+		i2c-gpio,delay-us = <2>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		an30259a@30 {
+			compatible = "panasonic,an30259a";
+			reg = <0x30>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			red@1 {
+				reg = <1>;
+				label = "red:notification";
+			};
+
+			green@2 {
+				reg = <2>;
+				label = "green:notification";
+			};
+
+			blue@3 {
+				reg = <3>;
+				label = "blue:notification";
+			};
 		};
 	};
 
