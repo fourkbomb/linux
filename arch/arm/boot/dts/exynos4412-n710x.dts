@@ -171,5 +171,9 @@
 &s5c73m3 {
 	standby-gpios = <&gpm0 6 GPIO_ACTIVE_LOW>;   /* ISP_STANDBY */
 	vdda-supply = <&cam_vdda_reg>;
+};
+
+&touchkey_reg {
+	gpio = <&gpm0 5 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 };
