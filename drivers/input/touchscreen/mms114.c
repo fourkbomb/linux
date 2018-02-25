@@ -587,6 +587,7 @@ static SIMPLE_DEV_PM_OPS(mms114_pm_ops, mms114_suspend, mms114_resume);
 
 static const struct i2c_device_id mms114_id[] = {
 	{ "mms114", 0 },
+	{ "mms152", 0 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, mms114_id);
