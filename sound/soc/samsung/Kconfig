@@ -212,4 +212,12 @@ config SND_SOC_SAMSUNG_TM2_WM5110
 	help
 	  Say Y if you want to add support for SoC audio on the TM2 board.
 
+config SND_SOC_SAMSUNG_MIDAS_WM1811
+	tristate "SoC I2S Audio support for midas boards"
+	depends on SND_SOC_SAMSUNG
+	select SND_SAMSUNG_I2S
+	select SND_SOC_WM8994
+	help
+	  Say Y if yo uwant to add support for SoC audio on the midas boards.
+
 endif #SND_SOC_SAMSUNG
