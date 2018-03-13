@@ -1,0 +1,42 @@
+Samsung's WM1811-based Midas audio complex
+
+Required properties:
+
+ - compatible		 : "samsung,midas-audio"
+ - model		 : the user-visible name of this sound complex
+ - audio-codec		 : the phandle of the wm1811 audio codec node,
+			   as described in ../sound/wm8994.txt
+ - i2s-controller	 : the phandle of the I2S controller
+ - samsung,audio-routing : a list of the connections between audio components;
+			   each entry is a pair of strings, the first being the
+			   connection's sink, the second being the connection's
+			   source; valid names for sources and sinks are the
+			   WM1811's pins and the jacks on the
+			   board: HP, SPK, Main Mic, Sub Mic, Headset Mic
+ - mic-bias-gpios	 : GPIO pin that enables the Main Mic bias regulator
+ - submic-bias-gpios     : GPIO pin that enables the Sub Mic bias regulator
+
+
+Example:
+sound {
+        compatible = "samsung,midas-audio";
+        audio-codec = <&wm1811>;
+        i2s-controller = <&i2s0>;
+        mic-bias-gpios = <&gpf1 7 0>;
+        submic-bias-gpios = <&gpf2 0 0>;
+        model = "Midas";
+        samsung,audio-routing =
+                "HP", "HPOUT1L",
+                "HP", "HPOUT1R",
+                "SPK", "SPKOUTLN",
+                "SPK", "SPKOUTLP",
+                "SPK", "SPKOUTRN",
+                "SPK", "SPKOUTRP",
+                "RCV", "HPOUT2N",
+                "RCV", "HPOUT2P",
+                "IN1LP", "Main Mic",
+                "IN1LN", "Main Mic",
+                "IN1RP", "Sub Mic",
+                "IN1LP", "Sub Mic";
+};
+
