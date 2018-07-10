@@ -62,6 +62,9 @@ enum max77693_muic_adc_debounce_time {
 	ADC_DEBOUNCE_TIME_38_62MS,
 };
 
+#define IRQ_TYPE_ADC BIT(0)
+#define IRQ_TYPE_CHARGER BIT(1)
+
 struct max77693_muic_info {
 	struct device *dev;
 	struct max77693_dev *max77693;
@@ -72,7 +75,8 @@ struct max77693_muic_info {
 	int prev_button_type;
 	u8 status[2];
 
-	int irq;
+	spinlock_t irq_lock;
+	int pending_irq;
 	struct work_struct irq_work;
 	struct mutex mutex;
 
@@ -936,17 +940,22 @@ static void max77693_muic_irq_work(struct work_struct *work)
 {
 	struct max77693_muic_info *info = container_of(work,
 			struct max77693_muic_info, irq_work);
-	int irq_type = -1;
-	int i, ret = 0;
+	int irq_type;
+	int ret = 0;
+	unsigned long flags;
 
 	if (!info->edev)
 		return;
 
-	mutex_lock(&info->mutex);
+	spin_lock_irqsave(&info->irq_lock, flags);
+	irq_type = info->pending_irq;
+	info->pending_irq = 0;
+	spin_unlock_irqrestore(&info->irq_lock, flags);
 
-	for (i = 0; i < ARRAY_SIZE(muic_irqs); i++)
-		if (info->irq == muic_irqs[i].virq)
-			irq_type = muic_irqs[i].irq;
+	if (!irq_type)
+		return;
+
+	mutex_lock(&info->mutex);
 
 	ret = regmap_bulk_read(info->max77693->regmap_muic,
 			MAX77693_MUIC_REG_STATUS1, info->status, 2);
@@ -956,38 +965,12 @@ static void max77693_muic_irq_work(struct work_struct *work)
 		return;
 	}
 
-	switch (irq_type) {
-	case MAX77693_MUIC_IRQ_INT1_ADC:
-	case MAX77693_MUIC_IRQ_INT1_ADC_LOW:
-	case MAX77693_MUIC_IRQ_INT1_ADC_ERR:
-	case MAX77693_MUIC_IRQ_INT1_ADC1K:
-		/*
-		 * Handle all of accessory except for
-		 * type of charger accessory.
-		 */
+	if (irq_type & IRQ_TYPE_ADC) {
 		ret = max77693_muic_adc_handler(info);
-		break;
-	case MAX77693_MUIC_IRQ_INT2_CHGTYP:
-	case MAX77693_MUIC_IRQ_INT2_CHGDETREUN:
-	case MAX77693_MUIC_IRQ_INT2_DCDTMR:
-	case MAX77693_MUIC_IRQ_INT2_DXOVP:
-	case MAX77693_MUIC_IRQ_INT2_VBVOLT:
-	case MAX77693_MUIC_IRQ_INT2_VIDRM:
-		/* Handle charger accessory */
+	}
+
+	if (irq_type & IRQ_TYPE_CHARGER) {
 		ret = max77693_muic_chg_handler(info);
-		break;
-	case MAX77693_MUIC_IRQ_INT3_EOC:
-	case MAX77693_MUIC_IRQ_INT3_CGMBC:
-	case MAX77693_MUIC_IRQ_INT3_OVP:
-	case MAX77693_MUIC_IRQ_INT3_MBCCHG_ERR:
-	case MAX77693_MUIC_IRQ_INT3_CHG_ENABLED:
-	case MAX77693_MUIC_IRQ_INT3_BAT_DET:
-		break;
-	default:
-		dev_err(info->dev, "muic interrupt: irq %d occurred\n",
-				irq_type);
-		mutex_unlock(&info->mutex);
-		return;
 	}
 
 	if (ret < 0)
@@ -999,8 +982,52 @@ static void max77693_muic_irq_work(struct work_struct *work)
 static irqreturn_t max77693_muic_irq_handler(int irq, void *data)
 {
 	struct max77693_muic_info *info = data;
+	int irq_type = -1;
+	int i;
+	unsigned long flags;
 
-	info->irq = irq;
+	for (i = 0; i < ARRAY_SIZE(muic_irqs); i++) {
+		if (irq == muic_irqs[i].virq) {
+			irq_type = muic_irqs[i].irq;
+			break;
+		}
+	}
+
+	spin_lock_irqsave(&info->irq_lock, flags);
+	switch (irq_type) {
+	case MAX77693_MUIC_IRQ_INT1_ADC:
+	case MAX77693_MUIC_IRQ_INT1_ADC_LOW:
+	case MAX77693_MUIC_IRQ_INT1_ADC_ERR:
+	case MAX77693_MUIC_IRQ_INT1_ADC1K:
+		/*
+		 * Handle all of accessory except for
+		 * type of charger accessory.
+		 */
+		info->pending_irq |= IRQ_TYPE_ADC;
+		break;
+	case MAX77693_MUIC_IRQ_INT2_CHGTYP:
+	case MAX77693_MUIC_IRQ_INT2_CHGDETREUN:
+	case MAX77693_MUIC_IRQ_INT2_DCDTMR:
+	case MAX77693_MUIC_IRQ_INT2_DXOVP:
+	case MAX77693_MUIC_IRQ_INT2_VBVOLT:
+	case MAX77693_MUIC_IRQ_INT2_VIDRM:
+		/* Handle charger accessory */
+		info->pending_irq |= IRQ_TYPE_CHARGER;
+		break;
+	case MAX77693_MUIC_IRQ_INT3_EOC:
+	case MAX77693_MUIC_IRQ_INT3_CGMBC:
+	case MAX77693_MUIC_IRQ_INT3_OVP:
+	case MAX77693_MUIC_IRQ_INT3_MBCCHG_ERR:
+	case MAX77693_MUIC_IRQ_INT3_CHG_ENABLED:
+	case MAX77693_MUIC_IRQ_INT3_BAT_DET:
+		break;
+	default:
+		dev_err(info->dev, "muic interrupt: irq %d occurred\n",
+				irq_type);
+		break;
+	}
+	spin_unlock_irqrestore(&info->irq_lock, flags);
+
 	schedule_work(&info->irq_work);
 
 	return IRQ_HANDLED;
@@ -1126,6 +1153,7 @@ static int max77693_muic_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, info);
 	mutex_init(&info->mutex);
+	spin_lock_init(&info->irq_lock);
 
 	INIT_WORK(&info->irq_work, max77693_muic_irq_work);
 
