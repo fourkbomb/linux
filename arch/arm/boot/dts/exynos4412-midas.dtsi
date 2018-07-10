@@ -184,7 +184,7 @@
 		#size-cells = <0>;
 		status = "okay";
 
-		max77693@66 {
+		max77693: max77693@66 {
 			compatible = "maxim,max77693";
 			interrupt-parent = <&gpx1>;
 			interrupts = <5 IRQ_TYPE_EDGE_FALLING>;

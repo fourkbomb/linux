@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 /dts-v1/;
 #include "exynos4412-midas.dtsi"
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "samsung,n710x", "samsung,midas", "samsung,exynos4412", "samsung,exynos4";
@@ -186,6 +187,21 @@
 	regulator-name = "VCI_3.0V_LCD";
 	regulator-min-microvolt = <3000000>;
 	regulator-max-microvolt = <3000000>;
+};
+
+&max77693 {
+	led {
+		compatible = "maxim,max77693-led";
+		maxim,boost-mode = <LEDS_BOOST_ADAPTIVE>;
+		maxim,boost-mvout = <5000>;
+		camera-flash {
+			label = "flash";
+			led-sources = <0>, <1>;
+			led-max-microamp = <140625>;
+			flash-max-microamp = <500000>;
+			flash-max-timeout-us = <500000>;
+		};
+	};
 };
 
 &s5c73m3 {
